@@ -955,6 +955,7 @@ function filter_tags_generic(kv)
     --check for bus_forward overrides
     kv["bus_forward"] = bus[kv["bus"]] or psv[kv["psv"]] or psv[kv["lanes:psv:forward"]] or motor_vehicle[kv["motor_vehicle"]] or kv["bus_forward"]
     kv["bus_tag"] = bus[kv["bus"]] or psv[kv["psv"]] or psv[kv["lanes:psv:forward"]] or motor_vehicle[kv["motor_vehicle"]] or nil
+    --kv["bus_forward"] =  (kv["nhvr:accessCode"] == "Approved")
 
     --check for taxi_forward overrides
     kv["taxi_forward"] = taxi[kv["taxi"]] or psv[kv["psv"]] or psv[kv["lanes:psv:forward"]] or motor_vehicle[kv["motor_vehicle"]] or kv["taxi_forward"]

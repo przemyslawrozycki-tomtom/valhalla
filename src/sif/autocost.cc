@@ -793,6 +793,10 @@ public:
                               const uint64_t current_time,
                               const uint32_t tz_index,
                               uint8_t& restriction_idx) const override;
+
+private:
+  void Logdata(const baldr::DirectedEdge* edge,const baldr::GraphId& edgeid) const;
+
 };
 
 // Check if access is allowed on the specified edge.
@@ -806,18 +810,40 @@ bool BusCost::Allowed(const baldr::DirectedEdge* edge,
                       uint8_t& restriction_idx) const {
   // Check access, U-turn, and simple turn restriction.
   // Allow U-turns at dead-end nodes.
-  if (!IsAccessible(edge) || (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
+
+  Logdata(edge, edgeid);
+  if ( ((edge->forwardaccess() & kBusAccess) == 0) && (!IsAccessible(edge) || (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
       ((pred.restrictions() & (1 << edge->localedgeidx())) && !ignore_restrictions_) ||
       edge->surface() == Surface::kImpassable || IsUserAvoidEdge(edgeid) ||
       (!allow_destination_only_ && !pred.destonly() && edge->destonly()) ||
       (pred.closure_pruning() && IsClosed(edge, tile)) ||
       (exclude_unpaved_ && !pred.unpaved() && edge->unpaved()) || !IsHOVAllowed(edge) ||
-      CheckExclusions(edge, pred)) {
-    return false;
-  }
+      CheckExclusions(edge, pred))
+    ) {
+      LOG_INFO("BusCost::Allowed: edgeid = " + std::to_string(edgeid) + " is not accessible");
+    
 
-  return DynamicCost::EvaluateRestrictions(access_mask_, edge, is_dest, tile, edgeid, current_time,
+      return false;
+    }
+    LOG_INFO("BusCost::Allowed: edgeid = " + std::to_string(edgeid) + " may be accessible");
+    return DynamicCost::EvaluateRestrictions(access_mask_, edge, is_dest, tile, edgeid, current_time,
                                            tz_index, restriction_idx);
+}
+
+void BusCost::Logdata(const baldr::DirectedEdge* edge,const baldr::GraphId& edgeid) const {
+  LOG_INFO("###############################");
+
+  json::MapPtr json = edge->json();
+       
+  std::ostringstream edgeostrm;
+  edgeostrm << *json;
+  LOG_INFO("Edge: " + edgeostrm.str());
+
+  LOG_INFO("Access mask: " + std::to_string(access_mask_));
+  LOG_INFO("Access restriction: " + std::to_string(edge->access_restriction()));
+  LOG_INFO("Forward access: " + std::to_string(edge->forwardaccess()));
+
+  edge->bss_connection()
 }
 
 // Checks if access is allowed for an edge on the reverse path (from
@@ -839,6 +865,7 @@ bool BusCost::AllowedReverse(const baldr::DirectedEdge* edge,
       (pred.closure_pruning() && IsClosed(opp_edge, tile)) ||
       (exclude_unpaved_ && !pred.unpaved() && opp_edge->unpaved()) || !IsHOVAllowed(opp_edge) ||
       CheckExclusions(opp_edge, pred)) {
+
     return false;
   }
 

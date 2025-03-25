@@ -231,6 +231,16 @@ struct graph_parser {
       osm_access_.set_bus_tag(true);
       has_user_tags_ = true;
     };
+    // NHVR Code
+    tag_handlers_["nhvr:accessCode"] = [this]() {
+      LOG_INFO("NHVR handler invoked: " + tag_.first + " " + tag_.second);
+
+      if (tag_.second != "Approved") {
+        LOG_INFO("NHVR way not approved: " + std::to_string(way_.way_id()));
+        osm_access_.set_bus_tag(false);
+        has_user_tags_ = true;
+      }
+    };
     tag_handlers_["foot_tag"] = [this]() {
       osm_access_.set_foot_tag(true);
       has_user_tags_ = true;
@@ -2526,6 +2536,7 @@ struct graph_parser {
         }
 
       }
+
       // motor_vehicle:conditional=no @ (16:30-07:00)
       else if (boost::algorithm::starts_with(tag_.first, "access:conditional") ||
                boost::algorithm::starts_with(tag_.first, "motorcar:conditional") ||
@@ -3747,6 +3758,15 @@ struct graph_parser {
         }
       }
     }
+
+    // NHVR Code
+    LOG_INFO("Trying to find nhvr:accessCode on : " + std::to_string(osmid_));
+    if (tags.find("nhvr:accessCode") == tags.end()) {
+      LOG_INFO("nhvr:accessCode not found for way id: " + std::to_string(osmid_));
+      osm_access_.set_bus_tag(false);
+    }
+
+
 
     // Add the way to the list
     ways_->push_back(way_);
